@@ -38,8 +38,9 @@ public class DelieWoutZombieRuntime : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "AIModule"
-				// ... add private dependencies that you statically link with here ...	
+                "AIModule",
+				"GameAI_Zombie"
+				// ... add private dependencies that you statically link with here ...
 			}
 			);
 		
