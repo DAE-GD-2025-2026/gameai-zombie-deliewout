@@ -15,7 +15,7 @@ bool USeesItemDelieWout::CalculateRawConditionValue(UBehaviorTreeComponent& Owne
 	APawn* Pawn = Controller->GetPawn();
 	if (!Pawn) return false;
 
-	UAIPerceptionComponent* PerceptionComp = Pawn->GetComponentByClass<UAIPerceptionComponent>();
+	UAIPerceptionComponent* PerceptionComp = Pawn->FindComponentByClass<UAIPerceptionComponent>();
 	if (!PerceptionComp) return false;
 
 	TArray<AActor*> PerceivedActors;

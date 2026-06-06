@@ -15,7 +15,7 @@ bool UIsInventoryFullDelieWout::CalculateRawConditionValue(UBehaviorTreeComponen
 	APawn* Pawn = Controller->GetPawn();
 	if (!Pawn) return false;
 
-	UInventoryComponent* Inventory = Pawn->GetComponentByClass<UInventoryComponent>();
+	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
 	if (!Inventory) return false;
 
 	auto Items = Inventory->GetInventory();
