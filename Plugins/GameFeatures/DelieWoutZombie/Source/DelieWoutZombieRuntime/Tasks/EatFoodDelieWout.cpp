@@ -31,7 +31,7 @@ EBTNodeResult::Type UEatFoodDelieWout::ExecuteTask(UBehaviorTreeComponent& Owner
 		{
 			InventoryComponent->UseItem(i);
 			InventoryComponent->RemoveItem(i);
-			EBTNodeResult::Succeeded;
+			return EBTNodeResult::Succeeded;
 		}
 	}
 

@@ -30,7 +30,7 @@ EBTNodeResult::Type UUseMedkitDelieWout::ExecuteTask(UBehaviorTreeComponent& Own
 		{
 			InventoryComponent->UseItem(i);
 			InventoryComponent->RemoveItem(i);
-			EBTNodeResult::Succeeded;
+			return EBTNodeResult::Succeeded;
 		}
 	}
 
