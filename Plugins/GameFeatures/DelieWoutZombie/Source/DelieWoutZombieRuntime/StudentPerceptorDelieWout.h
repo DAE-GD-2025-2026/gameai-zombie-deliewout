@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,17 +8,17 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Damage.h"
 #include "Perception/AISense_Damage.h"
-#include "StudentPerceptor.generated.h"
+#include "StudentPerceptorDelieWout.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DELIEWOUTZOMBIERUNTIME_API UStudentPerceptor : public UActorComponent
+class DELIEWOUTZOMBIERUNTIME_API UStudentPerceptorDelieWout : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this component's properties
-	UStudentPerceptor();
-	
+	UStudentPerceptorDelieWout();
+
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
