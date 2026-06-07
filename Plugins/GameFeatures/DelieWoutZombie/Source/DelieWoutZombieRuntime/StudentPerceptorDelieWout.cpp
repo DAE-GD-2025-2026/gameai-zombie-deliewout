@@ -6,6 +6,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Zombies/BaseZombie.h"
 #include "Village/House/House.h"
+#include "Items/BaseItem.h"
 
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
@@ -37,7 +38,7 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	UBlackboardComponent* BB = AIController->GetBlackboardComponent();
 	if (!BB) return;
 
-	UAIPerceptionComponent* PerceptionComp = Pawn->FindComponentByClass<UAIPerceptionComponent>();
+	UAIPerceptionComponent* PerceptionComp = Pawn->GetComponentByClass<UAIPerceptionComponent>();
 	if (!PerceptionComp) return;
 
 	TArray<AActor*> SeenActors;
@@ -45,10 +46,12 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 
 	ABaseZombie* NearestZombie=nullptr;
 	AHouse* NearestHouse=nullptr;
+	ABaseItem* NearestItem=nullptr;
 
 	FVector PawnLocation = Pawn->GetActorLocation();
 	float EnemyDistance = FLT_MAX;
 	float HouseDistance = FLT_MAX;
+	float ItemDistance = FLT_MAX;
 
 	for (AActor* SeenActor : SeenActors)
 	{
@@ -69,10 +72,19 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 				NearestHouse = House;
 			}
 		}
+		else if (ABaseItem* Item = Cast<ABaseItem>(SeenActor))
+		{
+			if (Distance < ItemDistance)
+			{
+				ItemDistance = Distance;
+				NearestItem = Item;
+			}
+		}
 	}
 
 	BB->SetValueAsObject("NearestZombie", NearestZombie);
 	BB->SetValueAsObject("NearestHouse", NearestHouse);
+	BB->SetValueAsObject("NearestItem", NearestItem);
 
 	//set the wasbitten value depending on if the player was damaged
 	TArray<AActor*> ZombieBiters;
