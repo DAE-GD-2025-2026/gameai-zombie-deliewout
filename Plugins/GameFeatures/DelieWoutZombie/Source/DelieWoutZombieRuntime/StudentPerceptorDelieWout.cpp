@@ -7,6 +7,7 @@
 #include "Zombies/BaseZombie.h"
 #include "Village/House/House.h"
 #include "Items/BaseItem.h"
+#include "Common/InventoryComponent.h"
 
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
@@ -32,15 +33,17 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	if (!Pawn) return;
 
-	AAIController* AIController = Cast<AAIController>(Pawn->GetController());
-	if (!AIController) return;
+	AAIController* Controller = Cast<AAIController>(Pawn->GetController());
+	if (!Controller) return;
 
-	UBlackboardComponent* BB = AIController->GetBlackboardComponent();
+	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
 	if (!BB) return;
 
 	UAIPerceptionComponent* PerceptionComp = Pawn->GetComponentByClass<UAIPerceptionComponent>();
 	if (!PerceptionComp) return;
 
+
+	//Gets all the seen actors
 	TArray<AActor*> SeenActors;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), SeenActors);
 
@@ -66,7 +69,7 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 		}
 		else if (AHouse* House = Cast<AHouse>(SeenActor))
 		{
-			if (Distance < EnemyDistance)
+			if (Distance < HouseDistance)
 			{
 				HouseDistance = Distance;
 				NearestHouse = House;
@@ -85,6 +88,18 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	BB->SetValueAsObject("NearestZombie", NearestZombie);
 	BB->SetValueAsObject("NearestHouse", NearestHouse);
 	BB->SetValueAsObject("NearestItem", NearestItem);
+
+	//looks for a free item spot in the inventory
+	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
+	if (Inventory)
+	{
+		int FreeSlot = -1;
+		for (int i = 0; i < Inventory->GetInventoryCapacity(); ++i)
+		{
+			if (Inventory->GetInventory()[i] == nullptr) { FreeSlot = i; break; }
+		}
+		BB->SetValueAsInt("FreeItemSlot", FreeSlot);
+	}
 
 	//set the wasbitten value depending on if the player was damaged
 	TArray<AActor*> ZombieBiters;
