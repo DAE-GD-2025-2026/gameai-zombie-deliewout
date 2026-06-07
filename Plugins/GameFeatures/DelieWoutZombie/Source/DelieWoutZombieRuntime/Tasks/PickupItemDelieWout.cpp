@@ -27,9 +27,23 @@ EBTNodeResult::Type UPickupItemDelieWout::ExecuteTask(UBehaviorTreeComponent& Ow
 	UInventoryComponent* Inventory = Controller->GetPawn()->FindComponentByClass<UInventoryComponent>();
 	if (!Inventory) return EBTNodeResult::Failed;
 
+	auto ClearTarget = [BB]()
+	{
+		BB->SetValueAsObject("NearestItem", nullptr);
+		BB->SetValueAsInt("FreeItemSlot", -1);
+	};
+
+	if (Inventory->GetInventory().Contains(Item))
+	{
+		ClearTarget();
+		return EBTNodeResult::Succeeded;
+	}
+
 	if (Inventory->GetInventory()[SlotIndex] != nullptr)
 		Inventory->RemoveItem(SlotIndex);
 
-	Inventory->GrabItem(SlotIndex, Item);
-	return EBTNodeResult::Succeeded;
+	const bool bGrabbed = Inventory->GrabItem(SlotIndex, Item);
+
+	ClearTarget();
+	return bGrabbed ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
 }

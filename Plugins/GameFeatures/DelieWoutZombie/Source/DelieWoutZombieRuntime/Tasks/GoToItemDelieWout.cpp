@@ -18,13 +18,19 @@ EBTNodeResult::Type UGoToItemDelieWout::ExecuteTask(UBehaviorTreeComponent& Owne
 	if (!Controller) return EBTNodeResult::Failed;
 
 	APawn* Pawn = Controller->GetPawn();
-	if (!Pawn)return EBTNodeResult::Failed;
+	if (!Pawn) return EBTNodeResult::Failed;
 
 	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
 	if (!BB) return EBTNodeResult::Failed;
 
 	ABaseItem* Item = Cast<ABaseItem>(BB->GetValueAsObject("NearestItem"));
-	if (!Item)return EBTNodeResult::Failed;
+	if (!Item) return EBTNodeResult::Failed;
+
+	GEngine->AddOnScreenDebugMessage(6, 1.f, FColor::Blue, TEXT("Go to the item"));
+
+	// Cache item and slot so PickupItem still works if perception clears the BB mid-move
+	CachedItem = Item;
+	CachedSlot = BB->GetValueAsInt("FreeItemSlot");
 
 	EPathFollowingRequestResult::Type Result = Controller->MoveToActor(Item);
 	if (Result == EPathFollowingRequestResult::AlreadyAtGoal)    return EBTNodeResult::Succeeded;
@@ -44,6 +50,16 @@ void UGoToItemDelieWout::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	if (Controller->GetMoveStatus() == EPathFollowingStatus::Idle)
 	{
+		// Re-stamp BB so PickupItem still has a valid reference even if perception
+		// fired and cleared NearestItem while we were walking
+		if (UBlackboardComponent* BB = Controller->GetBlackboardComponent())
+		{
+			if (CachedItem.IsValid())
+			{
+				BB->SetValueAsObject("NearestItem", CachedItem.Get());
+				BB->SetValueAsInt("FreeItemSlot", CachedSlot);
+			}
+		}
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
@@ -52,5 +68,7 @@ EBTNodeResult::Type UGoToItemDelieWout::AbortTask(UBehaviorTreeComponent& OwnerC
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	if (Controller) Controller->StopMovement();
+	CachedItem = nullptr;
+	CachedSlot = -1;
 	return Super::AbortTask(OwnerComp, NodeMemory);
 }
