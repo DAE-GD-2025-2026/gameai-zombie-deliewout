@@ -5,6 +5,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Zombies/BaseZombie.h"
+#include "Village/House/House.h"
 
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
@@ -43,9 +44,11 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), SeenActors);
 
 	ABaseZombie* NearestZombie=nullptr;
+	AHouse* NearestHouse=nullptr;
 
 	FVector PawnLocation = Pawn->GetActorLocation();
 	float EnemyDistance = FLT_MAX;
+	float HouseDistance = FLT_MAX;
 
 	for (AActor* SeenActor : SeenActors)
 	{
@@ -58,9 +61,18 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 				NearestZombie = Zombie;
 			}
 		}
+		else if (AHouse* House = Cast<AHouse>(SeenActor))
+		{
+			if (Distance < EnemyDistance)
+			{
+				HouseDistance = Distance;
+				NearestHouse = House;
+			}
+		}
 	}
 
 	BB->SetValueAsObject("NearestZombie", NearestZombie);
+	BB->SetValueAsObject("NearestHouse", NearestHouse);
 
 	//set the wasbitten value depending on if the player was damaged
 	TArray<AActor*> ZombieBiters;
