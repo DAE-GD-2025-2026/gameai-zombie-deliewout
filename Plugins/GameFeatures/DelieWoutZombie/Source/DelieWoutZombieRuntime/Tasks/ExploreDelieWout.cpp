@@ -4,8 +4,10 @@
 #include "ExploreDelieWout.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "NavigationSystem.h"
+#include "Zombies/BaseZombie.h"
 
 UExploreDelieWout::UExploreDelieWout()
 {
@@ -23,8 +25,36 @@ EBTNodeResult::Type UExploreDelieWout::ExecuteTask(UBehaviorTreeComponent& Owner
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Pawn->GetWorld());
 	if (!NavSys) return EBTNodeResult::Failed;
 
+	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
+	FExploreMemory* Memory = reinterpret_cast<FExploreMemory*>(NodeMemory);
+
+	//Wander
+	Memory->WanderAngle += FMath::RandRange(-WanderJitter, WanderJitter);
+
+	float AngleRad = FMath::DegreesToRadians(Memory->WanderAngle);
+	FVector WanderDir(FMath::Cos(AngleRad), FMath::Sin(AngleRad), 0.f);
+
+	// Flee from nearest zombie
+	FVector FleeDir = FVector::ZeroVector;
+	if (BB)
+	{
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie")))
+		{
+			FVector ToZombie = Zombie->GetActorLocation() - Pawn->GetActorLocation();
+			if (!ToZombie.IsNearlyZero())
+				FleeDir = -ToZombie.GetSafeNormal();
+		}
+	}
+
+	// Blend wander and Flee
+	FVector BlendedDir = WanderDir * WanderWeight + FleeDir * FleeWeight;
+	if (BlendedDir.IsNearlyZero()) BlendedDir = WanderDir;
+	BlendedDir.Normalize();
+
+	FVector Target = Pawn->GetActorLocation() + BlendedDir * SearchRadius;
+
 	FNavLocation NavLocation;
-	if (!NavSys->GetRandomPointInNavigableRadius(Pawn->GetActorLocation(), SearchRadius, NavLocation))
+	if (!NavSys->GetRandomPointInNavigableRadius(Target, SearchRadius * 0.3f, NavLocation))
 		return EBTNodeResult::Failed;
 
 	EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(NavLocation.Location, 50.f);
@@ -47,4 +77,11 @@ void UExploreDelieWout::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
+}
+
+EBTNodeResult::Type UExploreDelieWout::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	if (Controller) Controller->StopMovement();
+	return Super::AbortTask(OwnerComp, NodeMemory);
 }
