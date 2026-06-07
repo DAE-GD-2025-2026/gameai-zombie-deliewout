@@ -14,6 +14,8 @@ UGoToHouseDelieWout::UGoToHouseDelieWout()
 
 EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green,
+		FString::Printf(TEXT("Go to house!")));
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	if (!Controller) return EBTNodeResult::Failed;
 
@@ -47,6 +49,8 @@ void UGoToHouseDelieWout::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 
 EBTNodeResult::Type UGoToHouseDelieWout::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red,
+		FString::Printf(TEXT("ArrivedAtHouse!")));
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	if (Controller) Controller->StopMovement();
 	return Super::AbortTask(OwnerComp, NodeMemory);

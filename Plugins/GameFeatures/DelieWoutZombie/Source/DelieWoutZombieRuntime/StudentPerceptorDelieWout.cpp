@@ -7,8 +7,8 @@
 #include "Zombies/BaseZombie.h"
 #include "Village/House/House.h"
 #include "Items/BaseItem.h"
+#include "Items/ItemType.h"
 #include "Common/InventoryComponent.h"
-
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
 {
@@ -27,9 +27,6 @@ void UStudentPerceptorDelieWout::BeginPlay()
 
 void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green,
-		FString::Printf(TEXT("Saw Something!")));
-
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	if (!Pawn) return;
 
@@ -42,14 +39,43 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	UAIPerceptionComponent* PerceptionComp = Pawn->GetComponentByClass<UAIPerceptionComponent>();
 	if (!PerceptionComp) return;
 
-
-	//Gets all the seen actors
 	TArray<AActor*> SeenActors;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), SeenActors);
 
-	ABaseZombie* NearestZombie=nullptr;
-	AHouse* NearestHouse=nullptr;
-	ABaseItem* NearestItem=nullptr;
+	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
+
+	// Slot layout: Pistol=0, Shotgun=1, Medkit=2, Food=3, slot 4 kept free
+	auto GetPreferredSlot = [](EItemType Type) -> int32
+	{
+		switch (Type)
+		{
+			case EItemType::Pistol:  return 0;
+			case EItemType::Shotgun: return 1;
+			case EItemType::Medkit:  return 2;
+			case EItemType::Food:    return 3;
+			default:                 return -1;
+		}
+	};
+
+	// When bitten and unarmed, only seek weapons
+	bool bHasWeapon = false;
+	if (Inventory)
+	{
+		for (const ABaseItem* Item : Inventory->GetInventory())
+		{
+			if (Item && (Item->GetItemType() == EItemType::Pistol || Item->GetItemType() == EItemType::Shotgun))
+			{
+				bHasWeapon = true;
+				break;
+			}
+		}
+	}
+	const bool bNeedsWeapon = BB->GetValueAsBool("WasBitten") && !bHasWeapon;
+
+	ABaseZombie* NearestZombie = nullptr;
+	AHouse* NearestHouse = nullptr;
+	ABaseItem* NearestItem = nullptr;
+	int32 TargetItemSlot = -1;
 
 	FVector PawnLocation = Pawn->GetActorLocation();
 	float EnemyDistance = FLT_MAX;
@@ -59,6 +85,7 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	for (AActor* SeenActor : SeenActors)
 	{
 		float Distance = FVector::Dist(PawnLocation, SeenActor->GetActorLocation());
+
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(SeenActor))
 		{
 			if (Distance < EnemyDistance)
@@ -77,31 +104,41 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 		}
 		else if (ABaseItem* Item = Cast<ABaseItem>(SeenActor))
 		{
+			int32 Slot = GetPreferredSlot(Item->GetItemType());
+			if (Slot < 0) continue;
+
+			// When bitten and unarmed, ignore food and medkits — weapons only
+			if (bNeedsWeapon && Slot != 0 && Slot != 1) continue;
+
+			if (Inventory && Inventory->GetInventory()[Slot] != nullptr) continue;
+
 			if (Distance < ItemDistance)
 			{
 				ItemDistance = Distance;
 				NearestItem = Item;
+				TargetItemSlot = Slot;
 			}
 		}
 	}
 
 	BB->SetValueAsObject("NearestZombie", NearestZombie);
 	BB->SetValueAsObject("NearestHouse", NearestHouse);
-	BB->SetValueAsObject("NearestItem", NearestItem);
 
-	//looks for a free item spot in the inventory
-	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
-	if (Inventory)
+	if (NearestItem)
 	{
-		int FreeSlot = -1;
-		for (int i = 0; i < Inventory->GetInventoryCapacity(); ++i)
+		BB->SetValueAsObject("NearestItem", NearestItem);
+		BB->SetValueAsInt("FreeItemSlot", TargetItemSlot);
+	}
+	else
+	{
+		ABaseItem* CachedBBItem = Cast<ABaseItem>(BB->GetValueAsObject("NearestItem"));
+		if (!IsValid(CachedBBItem))
 		{
-			if (Inventory->GetInventory()[i] == nullptr) { FreeSlot = i; break; }
+			BB->SetValueAsObject("NearestItem", nullptr);
+			BB->SetValueAsInt("FreeItemSlot", -1);
 		}
-		BB->SetValueAsInt("FreeItemSlot", FreeSlot);
 	}
 
-	//set the wasbitten value depending on if the player was damaged
 	TArray<AActor*> ZombieBiters;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
 	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);

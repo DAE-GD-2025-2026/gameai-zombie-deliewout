@@ -16,7 +16,6 @@ class DELIEWOUTZOMBIERUNTIME_API UStudentPerceptorDelieWout : public UActorCompo
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UStudentPerceptorDelieWout();
 
 	virtual void BeginPlay() override;
