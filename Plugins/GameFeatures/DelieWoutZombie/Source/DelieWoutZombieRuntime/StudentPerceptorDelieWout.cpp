@@ -4,6 +4,7 @@
 #include "StudentPerceptorDelieWout.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Zombies/BaseZombie.h"
 
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
@@ -38,6 +39,30 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	UAIPerceptionComponent* PerceptionComp = Pawn->FindComponentByClass<UAIPerceptionComponent>();
 	if (!PerceptionComp) return;
 
+	TArray<AActor*> SeenActors;
+	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), SeenActors);
+
+	ABaseZombie* NearestZombie=nullptr;
+
+	FVector PawnLocation = Pawn->GetActorLocation();
+	float EnemyDistance = FLT_MAX;
+
+	for (AActor* SeenActor : SeenActors)
+	{
+		float Distance = FVector::Dist(PawnLocation, SeenActor->GetActorLocation());
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(SeenActor))
+		{
+			if (Distance < EnemyDistance)
+			{
+				EnemyDistance = Distance;
+				NearestZombie = Zombie;
+			}
+		}
+	}
+
+	BB->SetValueAsObject("NearestZombie", NearestZombie);
+
+	//set the wasbitten value depending on if the player was damaged
 	TArray<AActor*> ZombieBiters;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
 	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);
