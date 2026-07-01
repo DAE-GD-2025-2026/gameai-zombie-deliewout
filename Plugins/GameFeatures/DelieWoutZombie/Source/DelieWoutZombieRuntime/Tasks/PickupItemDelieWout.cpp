@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Items//BaseItem.h"
+#include "DelieWoutZombieRuntime/StudentPerceptorDelieWout.h"
 
 UPickupItemDelieWout::UPickupItemDelieWout()
 {
@@ -43,6 +44,14 @@ EBTNodeResult::Type UPickupItemDelieWout::ExecuteTask(UBehaviorTreeComponent& Ow
 		Inventory->RemoveItem(SlotIndex);
 
 	const bool bGrabbed = Inventory->GrabItem(SlotIndex, Item);
+	if (bGrabbed)
+	{
+		if (auto* Perceptor = Controller->GetPawn()->FindComponentByClass<UStudentPerceptorDelieWout>())
+			Perceptor->ForgetItem(Item);
+
+		if (Item->GetItemType() == EItemType::Garbage)
+			Inventory->RemoveItem(SlotIndex);
+	}
 
 	ClearTarget();
 	return bGrabbed ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;

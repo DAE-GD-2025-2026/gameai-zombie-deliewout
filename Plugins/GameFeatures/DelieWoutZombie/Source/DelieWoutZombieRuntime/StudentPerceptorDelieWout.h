@@ -22,6 +22,9 @@ public:
 
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+
+	UFUNCTION()
+	void ForgetItem(ABaseItem* Item);
 private: 
 	UPROPERTY()
 	TArray<AActor*> CheckedHouses;

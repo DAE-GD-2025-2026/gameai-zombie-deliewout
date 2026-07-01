@@ -143,3 +143,8 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
 	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);
 }
+
+void UStudentPerceptorDelieWout::ForgetItem(ABaseItem* Item)
+{
+	RememberedItems.Remove(Item);
+}
