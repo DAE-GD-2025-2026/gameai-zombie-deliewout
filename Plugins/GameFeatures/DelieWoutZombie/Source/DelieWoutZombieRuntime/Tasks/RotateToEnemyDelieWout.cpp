@@ -20,7 +20,7 @@ EBTNodeResult::Type URotateToEnemyDelieWout::ExecuteTask(UBehaviorTreeComponent&
 	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
 	if (!BB)return EBTNodeResult::Failed;
 
-	ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestEnemy"));
+	ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie"));
 	if (!Zombie) return EBTNodeResult::Failed;
 
 	APawn* Pawn = Controller->GetPawn();

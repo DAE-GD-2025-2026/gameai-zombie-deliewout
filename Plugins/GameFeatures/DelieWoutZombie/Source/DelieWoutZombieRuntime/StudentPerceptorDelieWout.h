@@ -22,4 +22,7 @@ public:
 
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+private: 
+	UPROPERTY()
+	TArray<AActor*> CheckedHouses;
 };
