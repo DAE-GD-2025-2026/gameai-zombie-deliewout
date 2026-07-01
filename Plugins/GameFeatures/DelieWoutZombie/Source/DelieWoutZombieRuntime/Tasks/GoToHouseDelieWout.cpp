@@ -6,6 +6,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Village/House/House.h"
+#include "NavigationSystem.h"
 
 UGoToHouseDelieWout::UGoToHouseDelieWout()
 {
@@ -25,7 +26,15 @@ EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Own
 	AHouse* House = Cast<AHouse>(BB->GetValueAsObject("NearestHouse"));
 	if (!House) return EBTNodeResult::Failed;
 
-	EPathFollowingRequestResult::Type Result = Controller->MoveToActor(House);
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Controller->GetWorld());
+	if (!NavSys) return EBTNodeResult::Failed;
+	const FHouseBounds Bounds = House->GetBounds();
+	FNavLocation Interior;
+	if (!NavSys->ProjectPointToNavigation(
+		Bounds.Origin, Interior, FVector(Bounds.Extent.X, Bounds.Extent.Y, 200.f)))
+		return EBTNodeResult::Failed;
+
+	EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(Interior.Location, 50.f);
 	if (Result == EPathFollowingRequestResult::AlreadyAtGoal)    return EBTNodeResult::Succeeded;
 	if (Result == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
 
