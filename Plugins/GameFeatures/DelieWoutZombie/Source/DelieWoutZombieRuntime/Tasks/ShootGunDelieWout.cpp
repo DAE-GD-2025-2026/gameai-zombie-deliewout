@@ -28,6 +28,8 @@ EBTNodeResult::Type UShootGunDelieWout::ExecuteTask(UBehaviorTreeComponent& Owne
 		if (Items[i]->GetItemType() == EItemType::Pistol || Items[i]->GetItemType() == EItemType::Shotgun)
 		{
 			Inventory->UseItem(i);
+			if (Items[i]->GetValue() <= 0)
+				Inventory->RemoveItem(i);
 			return EBTNodeResult::Succeeded;
 		}
 	}

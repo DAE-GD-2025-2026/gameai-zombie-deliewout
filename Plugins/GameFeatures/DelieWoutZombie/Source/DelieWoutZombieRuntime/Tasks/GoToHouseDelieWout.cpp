@@ -25,7 +25,7 @@ EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Own
 
 	AHouse* House = Cast<AHouse>(BB->GetValueAsObject("NearestHouse"));
 	if (!House) return EBTNodeResult::Failed;
-
+	GEngine->AddOnScreenDebugMessage(6, 1.f, FColor::Red, TEXT("Go to the house"));
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Controller->GetWorld());
 	if (!NavSys) return EBTNodeResult::Failed;
 	const FHouseBounds Bounds = House->GetBounds();
