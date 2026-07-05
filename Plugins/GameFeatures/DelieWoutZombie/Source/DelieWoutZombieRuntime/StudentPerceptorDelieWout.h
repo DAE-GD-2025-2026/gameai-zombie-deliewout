@@ -10,6 +10,9 @@
 #include "Perception/AISense_Damage.h"
 #include "StudentPerceptorDelieWout.generated.h"
 
+class ABaseItem;
+class AHouse;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class DELIEWOUTZOMBIERUNTIME_API UStudentPerceptorDelieWout : public UActorComponent
 {
@@ -19,13 +22,25 @@ public:
 	UStudentPerceptorDelieWout();
 
 	virtual void BeginPlay() override;
-
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
 	UFUNCTION()
 	void ForgetItem(ABaseItem* Item);
+
+	UFUNCTION()
+	void MarkHouseChecked(AHouse* House);
 private: 
 	UPROPERTY()
-	TArray<AActor*> CheckedHouses;
+	TArray<ABaseItem*> RememberedItems;
+
+	UPROPERTY()
+	TArray<AHouse*> RememberedHouses;
+
+	UPROPERTY()
+	TArray<AHouse*> CheckedHouses;
+
+	UPROPERTY()
+	AHouse* CurrentTargetHouse{ nullptr };
 };

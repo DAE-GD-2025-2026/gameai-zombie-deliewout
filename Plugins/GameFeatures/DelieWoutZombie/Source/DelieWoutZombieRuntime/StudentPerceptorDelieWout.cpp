@@ -25,8 +25,10 @@ void UStudentPerceptorDelieWout::BeginPlay()
 	}
 }
 
-void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	if (!Pawn) return;
 
@@ -44,18 +46,19 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 
 	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
 
-	// Slot layout: Pistol=0, Shotgun=1, Medkit=2, Food=3, slot 4 kept free
+	// Slot layout: Pistol=0, Shotgun=1, Medkit=2, Food=3, slot 4 used for trash to discard
 	auto GetPreferredSlot = [](EItemType Type) -> int32
-	{
-		switch (Type)
 		{
+			switch (Type)
+			{
 			case EItemType::Pistol:  return 0;
 			case EItemType::Shotgun: return 1;
 			case EItemType::Medkit:  return 2;
 			case EItemType::Food:    return 3;
+			case EItemType::Garbage: return 4;
 			default:                 return -1;
-		}
-	};
+			}
+		};
 
 	// When bitten and unarmed, only seek weapons
 	bool bHasWeapon = false;
@@ -142,9 +145,25 @@ void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus 
 	TArray<AActor*> ZombieBiters;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
 	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);
+
+}
+
+void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+{
+	if (!Stimulus.WasSuccessfullySensed())return;
+
+	if (ABaseItem* Item = Cast<ABaseItem>(Actor))
+		RememberedItems.AddUnique(Item);
+	else if (AHouse* House = Cast<AHouse>(Actor))
+		RememberedHouses.AddUnique(House);
 }
 
 void UStudentPerceptorDelieWout::ForgetItem(ABaseItem* Item)
 {
 	RememberedItems.Remove(Item);
+}
+
+void UStudentPerceptorDelieWout::MarkHouseChecked(AHouse* House)
+{
+	if (House) CheckedHouses.AddUnique(House);
 }
