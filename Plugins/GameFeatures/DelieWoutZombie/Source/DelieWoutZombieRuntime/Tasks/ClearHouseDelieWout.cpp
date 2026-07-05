@@ -7,6 +7,12 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Village/House/House.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "DelieWoutZombieRuntime/StudentPerceptorDelieWout.h"
+
+UClearHouseDelieWout::UClearHouseDelieWout()
+{
+	bNotifyTick = true;
+}
 
 EBTNodeResult::Type UClearHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
@@ -30,7 +36,34 @@ EBTNodeResult::Type UClearHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Ow
 		0.f);
 
 	EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(Target, 50.f);
+	if (Result == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
 	if (Result == EPathFollowingRequestResult::Failed) return EBTNodeResult::Failed;
 
 	return EBTNodeResult::Succeeded;
+}
+
+void UClearHouseDelieWout::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	if (!Controller)
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+		return;
+	}
+
+	if (Controller->GetMoveStatus() == EPathFollowingStatus::Idle)
+	{
+		if(auto* Perceptor = Controller->GetPawn()->FindComponentByClass<UStudentPerceptorDelieWout>())
+		{
+			Perceptor->MarkHouseChecked(TargetHouse.Get());
+			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		}
+	}
+}
+
+EBTNodeResult::Type UClearHouseDelieWout::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	if (AAIController* Controller = OwnerComp.GetAIOwner()) Controller->StopMovement();
+	TargetHouse = nullptr;
+	return Super::AbortTask(OwnerComp, NodeMemory);
 }
