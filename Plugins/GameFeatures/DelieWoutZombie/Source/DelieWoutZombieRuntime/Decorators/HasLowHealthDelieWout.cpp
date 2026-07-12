@@ -16,7 +16,7 @@ bool UHasLowHealthDelieWout::CalculateRawConditionValue(UBehaviorTreeComponent& 
 
 	UHealthComponent* Health = Pawn->FindComponentByClass<UHealthComponent>();
 	if (!Health)return false;
-
-	return Health->GetHealth() <= Health->GetMaxHealth() / 100 * MinHealth;
+	GEngine->AddOnScreenDebugMessage(6, 5.f, FColor::Blue, TEXT("Check for health"));
+	return Health->GetHealth() <=  MinHealth;
 
 }

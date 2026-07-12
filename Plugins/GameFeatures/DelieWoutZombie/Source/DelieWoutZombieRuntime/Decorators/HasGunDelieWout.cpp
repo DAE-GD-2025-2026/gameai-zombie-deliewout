@@ -21,7 +21,10 @@ bool UHasGunDelieWout::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerC
 	{
 		if (Item == nullptr) continue;
 		if (Item->GetItemType() == EItemType::Pistol || Item->GetItemType() == EItemType::Shotgun)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Has gun"));
 			return true;
+		}
 	}
 
 	return false;

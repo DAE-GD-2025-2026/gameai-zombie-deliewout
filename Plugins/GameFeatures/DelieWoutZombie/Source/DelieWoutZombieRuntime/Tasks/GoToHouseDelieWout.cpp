@@ -13,7 +13,7 @@ UGoToHouseDelieWout::UGoToHouseDelieWout()
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo1ry)
 {
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green,
 		FString::Printf(TEXT("Go to house!")));
@@ -25,7 +25,7 @@ EBTNodeResult::Type UGoToHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Own
 
 	AHouse* House = Cast<AHouse>(BB->GetValueAsObject("NearestHouse"));
 	if (!House) return EBTNodeResult::Failed;
-	GEngine->AddOnScreenDebugMessage(6, 1.f, FColor::Red, TEXT("Go to the house"));
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Go to the house"));
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Controller->GetWorld());
 	if (!NavSys) return EBTNodeResult::Failed;
 	const FHouseBounds Bounds = House->GetBounds();

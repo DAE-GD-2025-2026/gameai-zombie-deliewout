@@ -13,5 +13,6 @@ bool UDidEnemyBiteDelieWout::CalculateRawConditionValue(UBehaviorTreeComponent& 
 	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
 	if (!BB)return false;
 
+
 	return BB->GetValueAsBool("WasBitten");
 }

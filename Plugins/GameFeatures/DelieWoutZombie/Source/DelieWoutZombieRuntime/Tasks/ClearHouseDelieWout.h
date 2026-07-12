@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
+
+class AHouse;
+
 #include "ClearHouseDelieWout.generated.h"
 
 /**
@@ -22,5 +25,6 @@ protected:
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 private:
-	TUniquePtr<AHouse> TargetHouse;
+
+	TWeakObjectPtr<AHouse> TargetHouse;
 };

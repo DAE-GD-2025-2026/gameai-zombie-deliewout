@@ -19,6 +19,6 @@ protected:
 
 private: 
 	UPROPERTY(EditDefaultsOnly)
-	int MinHealth{20};
+	int MinHealth{5};
 	
 };

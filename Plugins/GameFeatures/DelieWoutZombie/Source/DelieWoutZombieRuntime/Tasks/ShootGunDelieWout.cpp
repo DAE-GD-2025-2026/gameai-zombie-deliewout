@@ -21,6 +21,7 @@ EBTNodeResult::Type UShootGunDelieWout::ExecuteTask(UBehaviorTreeComponent& Owne
 	if (!Inventory) return EBTNodeResult::Failed;
 
 	const auto& Items = Inventory->GetInventory();
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Going to shoot"));
 
 	for (int i{ 0 }; i < Items.Num(); ++i)
 	{
@@ -28,6 +29,7 @@ EBTNodeResult::Type UShootGunDelieWout::ExecuteTask(UBehaviorTreeComponent& Owne
 		if (Items[i]->GetItemType() == EItemType::Pistol || Items[i]->GetItemType() == EItemType::Shotgun)
 		{
 			Inventory->UseItem(i);
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Shoot gun"));
 			if (Items[i]->GetValue() <= 0)
 				Inventory->RemoveItem(i);
 			return EBTNodeResult::Succeeded;

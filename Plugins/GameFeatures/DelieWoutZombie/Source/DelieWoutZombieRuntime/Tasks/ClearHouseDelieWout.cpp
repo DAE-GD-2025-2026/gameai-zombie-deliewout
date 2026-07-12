@@ -34,7 +34,7 @@ EBTNodeResult::Type UClearHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Ow
 		FMath::RandRange(-Bounds.Extent.X * 0.5f, Bounds.Extent.X * 0.5f),
 		FMath::RandRange(-Bounds.Extent.Y * 0.5f, Bounds.Extent.Y * 0.5f),
 		0.f);
-
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Clearing House"));
 	EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(Target, 50.f);
 	if (Result == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
 	if (Result == EPathFollowingRequestResult::Failed) return EBTNodeResult::Failed;
