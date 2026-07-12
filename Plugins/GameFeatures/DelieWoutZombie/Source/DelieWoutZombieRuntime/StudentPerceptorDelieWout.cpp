@@ -46,100 +46,72 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 
 	UInventoryComponent* Inventory = Pawn->FindComponentByClass<UInventoryComponent>();
 
-	// Slot layout: Pistol=0, Shotgun=1, Medkit=2, Food=3, slot 4 used for trash to discard
-	auto GetPreferredSlot = [](EItemType Type) -> int32
-		{
-			switch (Type)
-			{
-			case EItemType::Pistol:  return 0;
-			case EItemType::Shotgun: return 1;
-			case EItemType::Medkit:  return 2;
-			case EItemType::Food:    return 3;
-			case EItemType::Garbage: return 4;
-			default:                 return -1;
-			}
-		};
-
-	// When bitten and unarmed, only seek weapons
-	bool bHasWeapon = false;
-	if (Inventory)
-	{
-		for (const ABaseItem* Item : Inventory->GetInventory())
-		{
-			if (Item && (Item->GetItemType() == EItemType::Pistol || Item->GetItemType() == EItemType::Shotgun))
-			{
-				bHasWeapon = true;
-				break;
-			}
-		}
-	}
-	const bool bNeedsWeapon = BB->GetValueAsBool("WasBitten") && !bHasWeapon;
-
 	ABaseZombie* NearestZombie = nullptr;
 	AHouse* NearestHouse = nullptr;
-	ABaseItem* NearestItem = nullptr;
-	int32 TargetItemSlot = -1;
 
-	FVector PawnLocation = Pawn->GetActorLocation();
+	const FVector PawnLocation = Pawn->GetActorLocation();
 	float EnemyDistance = FLT_MAX;
 	float HouseDistance = FLT_MAX;
-	float ItemDistance = FLT_MAX;
 
 	for (AActor* SeenActor : SeenActors)
 	{
-		float Distance = FVector::Dist(PawnLocation, SeenActor->GetActorLocation());
+		if (!IsValid(SeenActor)) continue;
+		const float Distance = FVector::Dist(PawnLocation, SeenActor->GetActorLocation());
 
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(SeenActor))
 		{
-			if (Distance < EnemyDistance)
-			{
-				EnemyDistance = Distance;
-				NearestZombie = Zombie;
-			}
+			if (Distance < EnemyDistance) { EnemyDistance = Distance; NearestZombie = Zombie; }
 		}
 		else if (AHouse* House = Cast<AHouse>(SeenActor))
 		{
-			if (Distance < HouseDistance)
-			{
-				HouseDistance = Distance;
-				NearestHouse = House;
-			}
-		}
-		else if (ABaseItem* Item = Cast<ABaseItem>(SeenActor))
-		{
-			int32 Slot = GetPreferredSlot(Item->GetItemType());
-			if (Slot < 0) continue;
-
-			// When bitten and unarmed, ignore food and medkits — weapons only
-			if (bNeedsWeapon && Slot != 0 && Slot != 1) continue;
-
-			if (Inventory && Inventory->GetInventory()[Slot] != nullptr) continue;
-
-			if (Distance < ItemDistance)
-			{
-				ItemDistance = Distance;
-				NearestItem = Item;
-				TargetItemSlot = Slot;
-			}
+			if (Distance < HouseDistance) { HouseDistance = Distance; NearestHouse = House; }
 		}
 	}
 
 	BB->SetValueAsObject("NearestZombie", NearestZombie);
 	BB->SetValueAsObject("NearestHouse", NearestHouse);
 
-	if (NearestItem)
+	// Forget items that are gone or already collected.
+	RememberedItems.RemoveAll([Inventory](ABaseItem* It)
 	{
-		BB->SetValueAsObject("NearestItem", NearestItem);
-		BB->SetValueAsInt("FreeItemSlot", TargetItemSlot);
+		return !IsValid(It) || (Inventory && Inventory->GetInventory().Contains(It));
+	});
+
+	// First free inventory slot (any type).
+	int32 FreeSlot = -1;
+	if (Inventory)
+	{
+		const TArray<ABaseItem*>& Items = Inventory->GetInventory();
+		for (int32 i = 0; i < Items.Num(); ++i)
+		{
+			if (Items[i] == nullptr) { FreeSlot = i; break; }
+		}
+	}
+
+	ABaseItem* Target = Cast<ABaseItem>(BB->GetValueAsObject("NearestItem"));
+	const bool bTargetStillValid = IsValid(Target)
+		&& !(Inventory && Inventory->GetInventory().Contains(Target));
+
+	if (!bTargetStillValid)
+	{
+		Target = nullptr;
+		float BestDistance = FLT_MAX;
+		for (ABaseItem* Item : RememberedItems)
+		{
+			const float Distance = FVector::Dist(PawnLocation, Item->GetActorLocation());
+			if (Distance < BestDistance) { BestDistance = Distance; Target = Item; }
+		}
+	}
+
+	if (Target && FreeSlot >= 0)
+	{
+		BB->SetValueAsObject("NearestItem", Target);
+		BB->SetValueAsInt("FreeItemSlot", FreeSlot);
 	}
 	else
 	{
-		ABaseItem* CachedBBItem = Cast<ABaseItem>(BB->GetValueAsObject("NearestItem"));
-		if (!IsValid(CachedBBItem))
-		{
-			BB->SetValueAsObject("NearestItem", nullptr);
-			BB->SetValueAsInt("FreeItemSlot", -1);
-		}
+		BB->SetValueAsObject("NearestItem", nullptr);
+		BB->SetValueAsInt("FreeItemSlot", -1);
 	}
 
 	TArray<AActor*> ZombieBiters;
