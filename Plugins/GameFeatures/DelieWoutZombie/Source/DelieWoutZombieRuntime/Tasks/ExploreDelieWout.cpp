@@ -8,6 +8,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "NavigationSystem.h"
 #include "Zombies/BaseZombie.h"
+#include "DelieWoutZombieRuntime/StudentPerceptorDelieWout.h"
 
 UExploreDelieWout::UExploreDelieWout()
 {
@@ -26,6 +27,30 @@ EBTNodeResult::Type UExploreDelieWout::ExecuteTask(UBehaviorTreeComponent& Owner
 	if (!NavSys) return EBTNodeResult::Failed;
 
 	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
+	ABaseZombie* Threat = BB ? Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie")) : nullptr;
+
+	if (UStudentPerceptorDelieWout* Perceptor = Pawn->FindComponentByClass<UStudentPerceptorDelieWout>())
+	{
+		FVector CellTarget;
+		for (int32 Attempt = 0; Attempt < 5; ++Attempt)
+		{
+			if (!Perceptor->GetNextExploreTarget(Pawn->GetActorLocation(), Threat, CellTarget))
+				break;
+
+			FNavLocation NavLocation;
+			if (!NavSys->ProjectPointToNavigation(CellTarget, NavLocation, FVector(700.f, 700.f, 500.f)))
+			{
+				Perceptor->MarkCellUnreachable(CellTarget);
+				continue;
+			}
+
+			EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(NavLocation.Location, 50.f);
+			if (Result == EPathFollowingRequestResult::AlreadyAtGoal)     return EBTNodeResult::Succeeded;
+			if (Result == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
+
+			Perceptor->MarkCellUnreachable(CellTarget);
+		}
+	}
 	FExploreMemory* Memory = reinterpret_cast<FExploreMemory*>(NodeMemory);
 
 	//Wander

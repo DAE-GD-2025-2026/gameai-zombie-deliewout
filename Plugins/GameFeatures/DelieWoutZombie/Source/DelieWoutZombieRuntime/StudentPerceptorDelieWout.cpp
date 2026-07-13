@@ -9,6 +9,7 @@
 #include "Items/BaseItem.h"
 #include "Items/ItemType.h"
 #include "Common/InventoryComponent.h"
+#include "NavigationSystem.h"
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
 {
@@ -50,6 +51,8 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 	AHouse* NearestHouse = nullptr;
 
 	const FVector PawnLocation = Pawn->GetActorLocation();
+	if (!bGridInitialized) InitExplorationGrid();
+		MarkVisitedCells(PawnLocation);
 	float EnemyDistance = FLT_MAX;
 	float HouseDistance = FLT_MAX;
 
@@ -138,4 +141,95 @@ void UStudentPerceptorDelieWout::ForgetItem(ABaseItem* Item)
 void UStudentPerceptorDelieWout::MarkHouseChecked(AHouse* House)
 {
 	if (House) CheckedHouses.AddUnique(House);
+}
+
+bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocation, const AActor* Threat, FVector& OutTarget)
+{
+	if (!bGridInitialized) return false;
+
+	FVector ThreatDir = FVector::ZeroVector;
+	if (IsValid(Threat))
+		ThreatDir = (Threat->GetActorLocation() - PawnLocation).GetSafeNormal2D();
+
+	int32 BestIndex = -1;
+	float BestScore = FLT_MAX;
+	for (int32 i = 0; i < CellVisited.Num(); ++i)
+	{
+		if (CellVisited[i]) continue;
+
+		const FVector Center = CalculateCellCenter(i);
+		float Score = FVector::Dist2D(Center, PawnLocation);
+		if (!ThreatDir.IsNearlyZero())
+		{
+			const FVector ToCell = (Center - PawnLocation).GetSafeNormal2D();
+			Score += ThreatPenalty * FMath::Max(0.f, FVector::DotProduct(ToCell, ThreatDir));
+		}
+		if (Score < BestScore) { BestScore = Score; BestIndex = i; }
+	}
+
+	if (BestIndex == -1)
+	{
+		// Whole map covered: reset for a fresh sweep, caller wanders this once.
+		CellVisited.Init(0, CellVisited.Num());
+		return false;
+	}
+
+	OutTarget = CalculateCellCenter(BestIndex);
+	return true;
+}
+
+void UStudentPerceptorDelieWout::MarkCellUnreachable(const FVector& Location)
+{
+	if (!bGridInitialized) return;
+	CellVisited[CellIndexFromLocation(Location)] = 1;
+}
+
+void UStudentPerceptorDelieWout::InitExplorationGrid()
+{
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	if (!NavSys) return;
+
+	const FBox NavBounds = NavSys->MainNavData->GetBounds();
+	if (!NavBounds.IsValid) return;
+
+	GridOrigin = FVector2D(NavBounds.Min.X, NavBounds.Min.Y);
+	NumCellsX = FMath::Max(1, FMath::CeilToInt((NavBounds.Max.X - NavBounds.Min.X) / CellSize));
+	NumCellsY = FMath::Max(1, FMath::CeilToInt((NavBounds.Max.Y - NavBounds.Min.Y) / CellSize));
+	CellVisited.Init(0, NumCellsX * NumCellsY);
+	bGridInitialized = true;
+}
+
+void UStudentPerceptorDelieWout::MarkVisitedCells(const FVector& Location)
+{
+	if (!bGridInitialized) return;
+
+	const int CellRange = FMath::CeilToInt(VisitRadius / CellSize);
+	const int CenterX = FMath::FloorToInt((Location.X - GridOrigin.X) / CellSize);
+	const int CenterY = FMath::FloorToInt((Location.Y - GridOrigin.Y) / CellSize);
+
+	for (int Y = CenterY - CellRange; Y <= CenterY + CellRange; ++Y)
+	{
+		if (Y < 0 || Y >= NumCellsY) continue;
+		for (int X = CenterX - CellRange; X <= CenterX + CellRange; ++X)
+		{
+			if (X < 0 || X >= NumCellsX) continue;
+			const int Index = Y * NumCellsX + X;
+			if (FVector::Dist2D(CalculateCellCenter(Index), Location) <= VisitRadius)
+				CellVisited[Index] = 1;
+		}
+	}
+}
+
+int UStudentPerceptorDelieWout::CellIndexFromLocation(const FVector& Location) const
+{
+	const int X = FMath::Clamp(FMath::FloorToInt((Location.X - GridOrigin.X) / CellSize), 0, NumCellsX - 1);
+	const int Y = FMath::Clamp(FMath::FloorToInt((Location.Y - GridOrigin.Y) / CellSize), 0, NumCellsY - 1);
+	return Y * NumCellsX + X;
+}
+
+FVector UStudentPerceptorDelieWout::CalculateCellCenter(int Index) const
+{
+	const int X = Index % NumCellsX;
+	const int Y = Index / NumCellsX;
+	return FVector(GridOrigin.X + (X + 0.5f) * CellSize, GridOrigin.Y + (Y + 0.5f) * CellSize, 0.f);
 }

@@ -31,6 +31,11 @@ public:
 
 	UFUNCTION()
 	void MarkHouseChecked(AHouse* House);
+
+	UFUNCTION()
+	bool GetNextExploreTarget(const FVector& PawnLocation, const AActor* Threat, FVector& OutTarget);
+	UFUNCTION()
+	void MarkCellUnreachable(const FVector& Location);
 private: 
 	UPROPERTY()
 	TArray<ABaseItem*> RememberedItems;
@@ -43,4 +48,25 @@ private:
 
 	UPROPERTY()
 	AHouse* CurrentTargetHouse{ nullptr };
+
+	UPROPERTY(EditAnywhere, Category = "Exploration")
+	float CellSize{ 1500.f };
+
+	UPROPERTY(EditAnywhere, Category = "Exploration")
+	float VisitRadius{ 1200.f };
+
+	//if an enemy is seen then the threat penalty is applied
+	UPROPERTY(EditAnywhere, Category = "Exploration")
+	float ThreatPenalty{ 3000.f };
+
+	void InitExplorationGrid();
+	void MarkVisitedCells(const FVector& Location);
+	int CellIndexFromLocation(const FVector& Location) const;
+	FVector CalculateCellCenter(int Index)const;
+
+	FVector2D GridOrigin{ FVector2D::ZeroVector };
+	int NumCellsX{ 0 };
+	int NumCellsY{ 0 };
+	TArray<int> CellVisited;
+	bool bGridInitialized{ false };
 };
