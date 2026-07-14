@@ -18,5 +18,5 @@ protected:
 
 private: 
 	UPROPERTY(EditDefaultsOnly)
-	int MinStamina{ 20 };
+	float MinStamina{ 50.0f };
 };

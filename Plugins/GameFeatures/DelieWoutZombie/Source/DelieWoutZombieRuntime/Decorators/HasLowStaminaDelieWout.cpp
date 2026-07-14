@@ -17,5 +17,5 @@ bool UHasLowStaminaDelieWout::CalculateRawConditionValue(UBehaviorTreeComponent&
 	UStaminaComponent* Stamina = Pawn->FindComponentByClass<UStaminaComponent>();
 	if (!Stamina)return false;
 
-	return Stamina->GetCurrentStamina() <= Stamina->GetMaxStamina() / 100 * MinStamina;
+	return Stamina->GetCurrentStamina() <= Stamina->GetMaxStamina() / 100.0f * MinStamina;
 }

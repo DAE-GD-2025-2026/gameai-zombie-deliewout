@@ -10,6 +10,7 @@
 #include "Items/ItemType.h"
 #include "Common/InventoryComponent.h"
 #include "NavigationSystem.h"
+#include "DrawDebugHelpers.h"
 
 UStudentPerceptorDelieWout::UStudentPerceptorDelieWout()
 {
@@ -52,7 +53,8 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 
 	const FVector PawnLocation = Pawn->GetActorLocation();
 	if (!bGridInitialized) InitExplorationGrid();
-		MarkVisitedCells(PawnLocation);
+	MarkVisitedCells(PawnLocation);
+	if (bDrawExplorationGrid) DrawExplorationGrid(PawnLocation);
 	float EnemyDistance = FLT_MAX;
 	float HouseDistance = FLT_MAX;
 
@@ -171,10 +173,13 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 	{
 		// Whole map covered: reset for a fresh sweep, caller wanders this once.
 		CellVisited.Init(0, CellVisited.Num());
+		bHasExploreTarget = false;
 		return false;
 	}
 
 	OutTarget = CalculateCellCenter(BestIndex);
+	LastExploreTarget = OutTarget;
+	bHasExploreTarget = true;
 	return true;
 }
 
@@ -187,7 +192,7 @@ void UStudentPerceptorDelieWout::MarkCellUnreachable(const FVector& Location)
 void UStudentPerceptorDelieWout::InitExplorationGrid()
 {
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-	if (!NavSys) return;
+	if (!NavSys || !NavSys->MainNavData) return;
 
 	const FBox NavBounds = NavSys->MainNavData->GetBounds();
 	if (!NavBounds.IsValid) return;
@@ -232,4 +237,36 @@ FVector UStudentPerceptorDelieWout::CalculateCellCenter(int Index) const
 	const int X = Index % NumCellsX;
 	const int Y = Index / NumCellsX;
 	return FVector(GridOrigin.X + (X + 0.5f) * CellSize, GridOrigin.Y + (Y + 0.5f) * CellSize, 0.f);
+}
+
+void UStudentPerceptorDelieWout::DrawExplorationGrid(const FVector& PawnLocation) const
+{
+	if (!bGridInitialized) return;
+
+	UWorld* World = GetWorld();
+	const float HalfCell = CellSize * 0.5f;
+	const FVector BoxExtent(HalfCell - 20.f, HalfCell - 20.f, 20.f);
+
+	// Red = unexplored, green = visited/unreachable. Drawn flat at the agent's height.
+	for (int i = 0; i < CellVisited.Num(); ++i)
+	{
+		FVector Center = CalculateCellCenter(i);
+		Center.Z = PawnLocation.Z;
+		const FColor Color = CellVisited[i] ? FColor::Green : FColor::Red;
+		const float Thickness = CellVisited[i] ? 4.f : 20.f;
+		DrawDebugBox(World, Center, BoxExtent, Color, false, -1.f, 0, Thickness);
+	}
+
+	// The radius that marks cells as visited.
+	DrawDebugCircle(World, PawnLocation, VisitRadius, 32, FColor::Cyan, false, -1.f, 0, 10.f,
+		FVector(1, 0, 0), FVector(0, 1, 0), false);
+
+	// Where the explore task is currently headed.
+	if (bHasExploreTarget)
+	{
+		FVector Target = LastExploreTarget;
+		Target.Z = PawnLocation.Z;
+		DrawDebugSphere(World, Target, 100.f, 12, FColor::Yellow, false, -1.f, 0, 6.f);
+		DrawDebugDirectionalArrow(World, PawnLocation, Target, 500.f, FColor::Yellow, false, -1.f, 0, 10.f);
+	}
 }

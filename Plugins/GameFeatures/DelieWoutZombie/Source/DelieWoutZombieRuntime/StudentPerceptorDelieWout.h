@@ -50,23 +50,31 @@ private:
 	AHouse* CurrentTargetHouse{ nullptr };
 
 	UPROPERTY(EditAnywhere, Category = "Exploration")
-	float CellSize{ 1500.f };
+	float CellSize{ 1000.f };
 
 	UPROPERTY(EditAnywhere, Category = "Exploration")
-	float VisitRadius{ 1200.f };
+	float VisitRadius{ 800.f };
 
 	//if an enemy is seen then the threat penalty is applied
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float ThreatPenalty{ 3000.f };
 
+	UPROPERTY(EditAnywhere, Category = "Exploration|Debug")
+	bool bDrawExplorationGrid{ true };
+
 	void InitExplorationGrid();
 	void MarkVisitedCells(const FVector& Location);
 	int CellIndexFromLocation(const FVector& Location) const;
 	FVector CalculateCellCenter(int Index)const;
+	void DrawExplorationGrid(const FVector& PawnLocation) const;
 
 	FVector2D GridOrigin{ FVector2D::ZeroVector };
 	int NumCellsX{ 0 };
 	int NumCellsY{ 0 };
 	TArray<int> CellVisited;
 	bool bGridInitialized{ false };
+
+	// Only for debug drawing: last target handed out by GetNextExploreTarget.
+	FVector LastExploreTarget{ FVector::ZeroVector };
+	bool bHasExploreTarget{ false };
 };
