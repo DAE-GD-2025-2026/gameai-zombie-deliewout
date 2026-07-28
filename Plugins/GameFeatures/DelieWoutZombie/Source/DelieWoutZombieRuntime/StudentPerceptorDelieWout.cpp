@@ -145,42 +145,75 @@ void UStudentPerceptorDelieWout::MarkHouseChecked(AHouse* House)
 	if (House) CheckedHouses.AddUnique(House);
 }
 
-bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocation, const AActor* Threat, FVector& OutTarget)
+bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocation, const AActor* /*Threat*/, FVector& OutTarget)
 {
 	if (!bGridInitialized) return false;
 
-	FVector ThreatDir = FVector::ZeroVector;
-	if (IsValid(Threat))
-		ThreatDir = (Threat->GetActorLocation() - PawnLocation).GetSafeNormal2D();
+	const int Idx = CellIndexFromLocation(PawnLocation);
+	const int CurX = Idx % NumCellsX;
+	const int CurY = Idx / NumCellsX;
 
-	int32 BestIndex = -1;
-	float BestScore = FLT_MAX;
-	for (int32 i = 0; i < CellVisited.Num(); ++i)
+	// (Re)anchor the spiral at the survivor's current cell when starting fresh,
+	// or when a detour (pickup, flee) has carried it well past the spiral.
+	const int DistFromCenter = bSpiralActive? FMath::Max(FMath::Abs(CurX - SpiralCenterX), FMath::Abs(CurY - SpiralCenterY)) : 0;
+	if (!bSpiralActive || DistFromCenter > SpiralRing + SpiralReanchorCells)
 	{
-		if (CellVisited[i]) continue;
+		SpiralCenterX = CurX;
+		SpiralCenterY = CurY;
+		SpiralRing = 0;
+		bSpiralActive = true;
+	}
 
-		const FVector Center = CalculateCellCenter(i);
-		float Score = FVector::Dist2D(Center, PawnLocation);
-		if (!ThreatDir.IsNearlyZero())
+	// Walk an expanding square spiral outward from the anchor and return the first in-bounds, unvisited cell.
+	const int MaxRing = FMath::Max(NumCellsX, NumCellsY);
+	const int TotalCells = (2 * MaxRing + 1) * (2 * MaxRing + 1);
+
+	int x = 0;
+	int y = 0;     // offset from the anchor
+	int dx = 1;
+	int dy = 0;    // step direction (start +X)
+	int legLen = 1;
+	int legStep = 0;
+	int legsDone = 0;
+
+	for (int Step = 0; Step < TotalCells; ++Step)
+	{
+		const int CX = SpiralCenterX + x;
+		const int CY = SpiralCenterY + y;
+		if (CX >= 0 && CX < NumCellsX && CY >= 0 && CY < NumCellsY)
 		{
-			const FVector ToCell = (Center - PawnLocation).GetSafeNormal2D();
-			Score += ThreatPenalty * FMath::Max(0.f, FVector::DotProduct(ToCell, ThreatDir));
+			const int CellIdx = CY * NumCellsX + CX;
+			if (!CellVisited[CellIdx])
+			{
+				SpiralRing = FMath::Max(FMath::Abs(x), FMath::Abs(y));
+				OutTarget = CalculateCellCenter(CellIdx);
+				LastExploreTarget = OutTarget;
+				bHasExploreTarget = true;
+				return true;
+			}
 		}
-		if (Score < BestScore) { BestScore = Score; BestIndex = i; }
+
+		// Advance along the spiral (legs 1,1,2,2,3,3,... turning 90°).
+		x += dx; 
+		y += dy;
+
+		if (++legStep == legLen)
+		{
+			legStep = 0;
+			const int ndx = -dy;
+			const int ndy = dx;   // rotate direction
+			dx = ndx; 
+			dy = ndy;
+			if (++legsDone == 2) 
+				{ legsDone = 0; ++legLen; }
+		}
 	}
 
-	if (BestIndex == -1)
-	{
-		// Whole map covered: reset for a fresh sweep, caller wanders this once.
-		CellVisited.Init(0, CellVisited.Num());
-		bHasExploreTarget = false;
-		return false;
-	}
-
-	OutTarget = CalculateCellCenter(BestIndex);
-	LastExploreTarget = OutTarget;
-	bHasExploreTarget = true;
-	return true;
+	// Whole map covered: reset for a fresh sweep, caller wanders this once.
+	CellVisited.Init(0, CellVisited.Num());
+	bSpiralActive = false;
+	bHasExploreTarget = false;
+	return false;
 }
 
 void UStudentPerceptorDelieWout::MarkCellUnreachable(const FVector& Location)

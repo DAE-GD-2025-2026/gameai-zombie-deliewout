@@ -50,7 +50,7 @@ private:
 	AHouse* CurrentTargetHouse{ nullptr };
 
 	UPROPERTY(EditAnywhere, Category = "Exploration")
-	float CellSize{ 1000.f };
+	float CellSize{ 800.f };
 
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float VisitRadius{ 800.f };
@@ -58,7 +58,8 @@ private:
 	//if an enemy is seen then the threat penalty is applied
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float ThreatPenalty{ 3000.f };
-
+	UPROPERTY(EditAnywhere, Category = "Exploration")
+	int SpiralReanchorCells{ 4 };   // restart the spiral if displaced this many cells past its radius
 	UPROPERTY(EditAnywhere, Category = "Exploration|Debug")
 	bool bDrawExplorationGrid{ true };
 
@@ -77,4 +78,9 @@ private:
 	// Only for debug drawing: last target handed out by GetNextExploreTarget.
 	FVector LastExploreTarget{ FVector::ZeroVector };
 	bool bHasExploreTarget{ false };
+	// Spiral search: the current outward spiral expands from this anchor cell.
+	int SpiralCenterX{ -1 };
+	int SpiralCenterY{ -1 };
+	int SpiralRing{ 0 };
+	bool bSpiralActive{ false };
 };
