@@ -51,10 +51,17 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 	ABaseZombie* NearestZombie = nullptr;
 	AHouse* NearestHouse = nullptr;
 
+	// Grid exploration: mark the cells around the pawn as visited and draw the grid if requested.
 	const FVector PawnLocation = Pawn->GetActorLocation();
-	if (!bGridInitialized) InitExplorationGrid();
+
+	if (!bGridInitialized) 
+		InitExplorationGrid();
+
 	MarkVisitedCells(PawnLocation);
-	if (bDrawExplorationGrid) DrawExplorationGrid(PawnLocation);
+
+	if (bDrawExplorationGrid) 
+		DrawExplorationGrid(PawnLocation);
+
 	float EnemyDistance = FLT_MAX;
 	float HouseDistance = FLT_MAX;
 
@@ -119,10 +126,21 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 		BB->SetValueAsInt("FreeItemSlot", -1);
 	}
 
+	// Check if the pawn was bitten by a zombie recently.
 	TArray<AActor*> ZombieBiters;
 	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
 	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);
-
+	if (ZombieBiters.Num() > 0)
+	{
+		AActor* Biter = nullptr; float BiterDist = FLT_MAX;
+		for (AActor* B : ZombieBiters)
+		{
+			if (!IsValid(B)) continue;
+			const float D = FVector::Dist(PawnLocation, B->GetActorLocation());
+			if (D < BiterDist) { BiterDist = D; Biter = B; }
+		}
+		if (Biter) BB->SetValueAsVector("LastBiteLocation", Biter->GetActorLocation());
+	}
 }
 
 void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -153,8 +171,8 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 	const int CurX = Idx % NumCellsX;
 	const int CurY = Idx / NumCellsX;
 
-	// (Re)anchor the spiral at the survivor's current cell when starting fresh,
-	// or when a detour (pickup, flee) has carried it well past the spiral.
+	//anchor the spiral at the survivor's current cell when starting fresh
+	//or when a detour (pickup, flee) has carried it well past the spiral
 	const int DistFromCenter = bSpiralActive? FMath::Max(FMath::Abs(CurX - SpiralCenterX), FMath::Abs(CurY - SpiralCenterY)) : 0;
 	if (!bSpiralActive || DistFromCenter > SpiralRing + SpiralReanchorCells)
 	{
@@ -164,14 +182,14 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 		bSpiralActive = true;
 	}
 
-	// Walk an expanding square spiral outward from the anchor and return the first in-bounds, unvisited cell.
+	//Walk an expanding square spiral outward from the anchor and return the first in-bounds, unvisited cell.
 	const int MaxRing = FMath::Max(NumCellsX, NumCellsY);
 	const int TotalCells = (2 * MaxRing + 1) * (2 * MaxRing + 1);
 
 	int x = 0;
-	int y = 0;     // offset from the anchor
+	int y = 0;     //offset from the anchor
 	int dx = 1;
-	int dy = 0;    // step direction (start +X)
+	int dy = 0;    //step direction (start +X)
 	int legLen = 1;
 	int legStep = 0;
 	int legsDone = 0;
@@ -193,7 +211,7 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 			}
 		}
 
-		// Advance along the spiral (legs 1,1,2,2,3,3,... turning 90°).
+		//Advance along the spiral
 		x += dx; 
 		y += dy;
 
@@ -201,7 +219,7 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 		{
 			legStep = 0;
 			const int ndx = -dy;
-			const int ndy = dx;   // rotate direction
+			const int ndy = dx;   //rotate direction
 			dx = ndx; 
 			dy = ndy;
 			if (++legsDone == 2) 
@@ -209,7 +227,7 @@ bool UStudentPerceptorDelieWout::GetNextExploreTarget(const FVector& PawnLocatio
 		}
 	}
 
-	// Whole map covered: reset for a fresh sweep, caller wanders this once.
+	//Whole map covered: reset for a fresh sweep, caller wanders this once.
 	CellVisited.Init(0, CellVisited.Num());
 	bSpiralActive = false;
 	bHasExploreTarget = false;
@@ -241,21 +259,7 @@ void UStudentPerceptorDelieWout::MarkVisitedCells(const FVector& Location)
 {
 	if (!bGridInitialized) return;
 
-	const int CellRange = FMath::CeilToInt(VisitRadius / CellSize);
-	const int CenterX = FMath::FloorToInt((Location.X - GridOrigin.X) / CellSize);
-	const int CenterY = FMath::FloorToInt((Location.Y - GridOrigin.Y) / CellSize);
-
-	for (int Y = CenterY - CellRange; Y <= CenterY + CellRange; ++Y)
-	{
-		if (Y < 0 || Y >= NumCellsY) continue;
-		for (int X = CenterX - CellRange; X <= CenterX + CellRange; ++X)
-		{
-			if (X < 0 || X >= NumCellsX) continue;
-			const int Index = Y * NumCellsX + X;
-			if (FVector::Dist2D(CalculateCellCenter(Index), Location) <= VisitRadius)
-				CellVisited[Index] = 1;
-		}
-	}
+	CellVisited[CellIndexFromLocation(Location)] = 1;
 }
 
 int UStudentPerceptorDelieWout::CellIndexFromLocation(const FVector& Location) const

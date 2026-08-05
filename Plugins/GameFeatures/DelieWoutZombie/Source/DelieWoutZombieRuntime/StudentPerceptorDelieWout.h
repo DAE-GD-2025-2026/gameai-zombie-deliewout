@@ -52,9 +52,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float CellSize{ 800.f };
 
-	UPROPERTY(EditAnywhere, Category = "Exploration")
-	float VisitRadius{ 800.f };
-
 	//if an enemy is seen then the threat penalty is applied
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float ThreatPenalty{ 3000.f };
