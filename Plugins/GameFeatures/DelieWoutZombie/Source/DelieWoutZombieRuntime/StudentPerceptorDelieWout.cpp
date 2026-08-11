@@ -89,7 +89,7 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 		return !IsValid(It) || (Inventory && Inventory->GetInventory().Contains(It));
 	});
 
-	// First free inventory slot (any type).
+	// First free inventory slot .
 	int32 FreeSlot = -1;
 	if (Inventory)
 	{
@@ -99,10 +99,25 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 			if (Items[i] == nullptr) { FreeSlot = i; break; }
 		}
 	}
+	auto AlreadyCarryType = [Inventory](EItemType Type) -> bool
+		{
+			if (!Inventory) return false;
+			for (ABaseItem* Held : Inventory->GetInventory())
+				if (IsValid(Held) && Held->GetItemType() == Type) return true;
+			return false;
+		};
+
+	auto IsCollectible = [&AlreadyCarryType](const ABaseItem* Item) -> bool
+		{
+			if (!IsValid(Item)) return false;
+			const EItemType Type = Item->GetItemType();
+			return Type == EItemType::Garbage || !AlreadyCarryType(Type);
+		};
 
 	ABaseItem* Target = Cast<ABaseItem>(BB->GetValueAsObject("NearestItem"));
 	const bool bTargetStillValid = IsValid(Target)
-		&& !(Inventory && Inventory->GetInventory().Contains(Target));
+		&& !(Inventory && Inventory->GetInventory().Contains(Target))
+		&& IsCollectible(Target);;
 
 	if (!bTargetStillValid)
 	{
@@ -110,6 +125,7 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 		float BestDistance = FLT_MAX;
 		for (ABaseItem* Item : RememberedItems)
 		{
+			if (!IsCollectible(Item)) continue;
 			const float Distance = FVector::Dist(PawnLocation, Item->GetActorLocation());
 			if (Distance < BestDistance) { BestDistance = Distance; Target = Item; }
 		}
@@ -293,10 +309,6 @@ void UStudentPerceptorDelieWout::DrawExplorationGrid(const FVector& PawnLocation
 		const float Thickness = CellVisited[i] ? 4.f : 20.f;
 		DrawDebugBox(World, Center, BoxExtent, Color, false, -1.f, 0, Thickness);
 	}
-
-	// The radius that marks cells as visited.
-	DrawDebugCircle(World, PawnLocation, VisitRadius, 32, FColor::Cyan, false, -1.f, 0, 10.f,
-		FVector(1, 0, 0), FVector(0, 1, 0), false);
 
 	// Where the explore task is currently headed.
 	if (bHasExploreTarget)

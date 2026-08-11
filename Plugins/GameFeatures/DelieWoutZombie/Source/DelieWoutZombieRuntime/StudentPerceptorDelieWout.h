@@ -58,7 +58,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	int SpiralReanchorCells{ 4 };   // restart the spiral if displaced this many cells past its radius
 	UPROPERTY(EditAnywhere, Category = "Exploration|Debug")
-	bool bDrawExplorationGrid{ true };
+	bool bDrawExplorationGrid{ false };
 
 	void InitExplorationGrid();
 	void MarkVisitedCells(const FVector& Location);
