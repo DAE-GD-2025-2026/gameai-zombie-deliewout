@@ -76,6 +76,7 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 		}
 		else if (AHouse* House = Cast<AHouse>(SeenActor))
 		{
+			if (CheckedHouses.Contains(House)) continue;
 			if (Distance < HouseDistance) { HouseDistance = Distance; NearestHouse = House; }
 		}
 	}

@@ -11,7 +11,7 @@
 
 URunFromPurgeDelieWout::URunFromPurgeDelieWout()
 {
-	bNotifyTick = true;
+	bNotifyTick = false;
 }
 
 EBTNodeResult::Type URunFromPurgeDelieWout::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

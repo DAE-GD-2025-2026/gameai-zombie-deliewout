@@ -28,6 +28,8 @@ EBTNodeResult::Type UClearHouseDelieWout::ExecuteTask(UBehaviorTreeComponent& Ow
 	AHouse* House = Cast<AHouse>(BB->GetValueAsObject("NearestHouse"));
 	if (!House) return EBTNodeResult::Failed;
 
+	TargetHouse = House;
+
 	FHouseBounds Bounds = House->GetBounds();
 
 	FVector Target = Bounds.Origin + FVector(
@@ -53,11 +55,10 @@ void UClearHouseDelieWout::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 
 	if (Controller->GetMoveStatus() == EPathFollowingStatus::Idle)
 	{
-		if(auto* Perceptor = Controller->GetPawn()->FindComponentByClass<UStudentPerceptorDelieWout>())
-		{
+		if (auto* Perceptor = Controller->GetPawn()->FindComponentByClass<UStudentPerceptorDelieWout>())
 			Perceptor->MarkHouseChecked(TargetHouse.Get());
-			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-		}
+
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
 
