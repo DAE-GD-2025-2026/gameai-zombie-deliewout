@@ -51,40 +51,6 @@ EBTNodeResult::Type UExploreDelieWout::ExecuteTask(UBehaviorTreeComponent& Owner
 			Perceptor->MarkCellUnreachable(CellTarget);
 		}
 	}
-	FExploreMemory* Memory = reinterpret_cast<FExploreMemory*>(NodeMemory);
-
-	//Wander
-	Memory->WanderAngle += FMath::RandRange(-WanderJitter, WanderJitter);
-
-	float AngleRad = FMath::DegreesToRadians(Memory->WanderAngle);
-	FVector WanderDir(FMath::Cos(AngleRad), FMath::Sin(AngleRad), 0.f);
-
-	// Flee from nearest zombie
-	FVector FleeDir = FVector::ZeroVector;
-	if (BB)
-	{
-		if (ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie")))
-		{
-			FVector ToZombie = Zombie->GetActorLocation() - Pawn->GetActorLocation();
-			if (!ToZombie.IsNearlyZero())
-				FleeDir = -ToZombie.GetSafeNormal();
-		}
-	}
-
-	// Blend wander and Flee
-	FVector BlendedDir = WanderDir * WanderWeight + FleeDir * FleeWeight;
-	if (BlendedDir.IsNearlyZero()) BlendedDir = WanderDir;
-	BlendedDir.Normalize();
-
-	FVector Target = Pawn->GetActorLocation() + BlendedDir * SearchRadius;
-
-	FNavLocation NavLocation;
-	if (!NavSys->GetRandomPointInNavigableRadius(Target, SearchRadius * 0.3f, NavLocation))
-		return EBTNodeResult::Failed;
-
-	EPathFollowingRequestResult::Type Result = Controller->MoveToLocation(NavLocation.Location, 50.f);
-	if (Result == EPathFollowingRequestResult::AlreadyAtGoal)    return EBTNodeResult::Succeeded;
-	if (Result == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
 
 	return EBTNodeResult::Failed;
 }
