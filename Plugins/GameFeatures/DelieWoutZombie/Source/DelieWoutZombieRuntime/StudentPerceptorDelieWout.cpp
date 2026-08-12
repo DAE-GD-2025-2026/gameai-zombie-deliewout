@@ -9,6 +9,8 @@
 #include "Items/BaseItem.h"
 #include "Items/ItemType.h"
 #include "Common/InventoryComponent.h"
+#include "Common/HealthComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "DrawDebugHelpers.h"
 
@@ -143,21 +145,34 @@ void UStudentPerceptorDelieWout::TickComponent(float DeltaTime, ELevelTick TickT
 		BB->SetValueAsInt("FreeItemSlot", -1);
 	}
 
-	// Check if the pawn was bitten by a zombie recently.
-	TArray<AActor*> ZombieBiters;
-	PerceptionComp->GetCurrentlyPerceivedActors(UAISense_Damage::StaticClass(), ZombieBiters);
-	BB->SetValueAsBool("WasBitten", ZombieBiters.Num() > 0);
-	if (ZombieBiters.Num() > 0)
+	UHealthComponent* HealthComp = Pawn->FindComponentByClass<UHealthComponent>();
+	const int CurrentHealth = HealthComp ? HealthComp->GetHealth() : -1;
+
+	if (HealthComp && LastHealth >= 0 && CurrentHealth < LastHealth)
 	{
-		AActor* Biter = nullptr; float BiterDist = FLT_MAX;
-		for (AActor* B : ZombieBiters)
+		ABaseZombie* Biter = nullptr;
+		float BiterDist = BiteDetectRadius;
+
+		TArray<AActor*> AllZombies;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseZombie::StaticClass(), AllZombies);
+		for (AActor* Z : AllZombies)
 		{
-			if (!IsValid(B)) continue;
-			const float D = FVector::Dist(PawnLocation, B->GetActorLocation());
-			if (D < BiterDist) { BiterDist = D; Biter = B; }
+			if (!IsValid(Z)) continue;
+			const float D = FVector::Dist(PawnLocation, Z->GetActorLocation());
+			if (D < BiterDist) { BiterDist = D; Biter = Cast<ABaseZombie>(Z); }
 		}
-		if (Biter) BB->SetValueAsVector("LastBiteLocation", Biter->GetActorLocation());
+
+		if (Biter)
+		{
+			BiteResponseTimer = BiteResponseDuration;
+			BB->SetValueAsVector("LastBiteLocation", Biter->GetActorLocation());
+		}
 	}
+	LastHealth = CurrentHealth;
+
+	if (BiteResponseTimer > 0.f)
+		BiteResponseTimer -= DeltaTime;
+	BB->SetValueAsBool("WasBitten", BiteResponseTimer > 0.f);
 }
 
 void UStudentPerceptorDelieWout::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)

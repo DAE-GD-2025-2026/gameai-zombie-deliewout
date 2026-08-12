@@ -80,4 +80,12 @@ private:
 	int SpiralCenterY{ -1 };
 	int SpiralRing{ 0 };
 	bool bSpiralActive{ false };
+
+	// Bite detection (Damage sense is never reported to, so infer from health drops).
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float BiteResponseDuration{ 1.5f };
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float BiteDetectRadius{ 250.f };
+	int LastHealth{ -1 };
+	float BiteResponseTimer{ 0.f };
 };
