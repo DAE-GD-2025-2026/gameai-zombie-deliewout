@@ -20,12 +20,26 @@ EBTNodeResult::Type URotateToEnemyDelieWout::ExecuteTask(UBehaviorTreeComponent&
 	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
 	if (!BB)return EBTNodeResult::Failed;
 
-	ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie"));
-	if (!Zombie) return EBTNodeResult::Failed;
-
 	APawn* Pawn = Controller->GetPawn();
-	FVector Direction = Zombie->GetActorLocation() - Pawn->GetActorLocation();
-	FRotator NewRotation = Direction.Rotation();
+	if (!Pawn)return EBTNodeResult::Failed;
+
+	FVector TargetLocation;
+	if (ABaseZombie* Zombie = Cast<ABaseZombie>(BB->GetValueAsObject("NearestZombie")))
+	{
+		TargetLocation = Zombie->GetActorLocation();
+	}
+	else if (BB->GetValueAsBool("WasBitten"))
+	{
+		TargetLocation = BB->GetValueAsVector("LastBiteLocation");
+	}
+	else
+	{
+		return EBTNodeResult::Failed;
+	}
+
+
+	FVector Direction = TargetLocation - Pawn->GetActorLocation();
+	FRotator NewRotation(0.f, Direction.Rotation().Yaw, 0.f);
 	Pawn->SetActorRotation(NewRotation);
 
 	return EBTNodeResult::Succeeded;
