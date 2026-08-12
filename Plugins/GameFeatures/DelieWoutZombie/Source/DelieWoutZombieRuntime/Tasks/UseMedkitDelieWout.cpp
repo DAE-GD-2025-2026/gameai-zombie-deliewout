@@ -28,7 +28,7 @@ EBTNodeResult::Type UUseMedkitDelieWout::ExecuteTask(UBehaviorTreeComponent& Own
 		if (Inventory[i] == nullptr) continue;
 		if (Inventory[i]->GetItemType() == EItemType::Medkit)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Use medkit"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Use medkit"));
 			InventoryComponent->UseItem(i);
 			InventoryComponent->RemoveItem(i);
 			return EBTNodeResult::Succeeded;
