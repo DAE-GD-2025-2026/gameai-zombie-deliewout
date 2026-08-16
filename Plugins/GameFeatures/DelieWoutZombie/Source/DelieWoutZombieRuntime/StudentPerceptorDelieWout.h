@@ -46,15 +46,10 @@ private:
 	UPROPERTY()
 	TArray<AHouse*> CheckedHouses;
 
-	UPROPERTY()
-	AHouse* CurrentTargetHouse{ nullptr };
 
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	float CellSize{ 800.f };
 
-	//if an enemy is seen then the threat penalty is applied
-	UPROPERTY(EditAnywhere, Category = "Exploration")
-	float ThreatPenalty{ 3000.f };
 	UPROPERTY(EditAnywhere, Category = "Exploration")
 	int SpiralReanchorCells{ 4 };   // restart the spiral if displaced this many cells past its radius
 	UPROPERTY(EditAnywhere, Category = "Exploration|Debug")
